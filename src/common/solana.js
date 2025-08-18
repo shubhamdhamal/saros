@@ -31,97 +31,91 @@ export async function awaitTransactionSignatureConfirmation(
 ) {
   let done = false;
   const connectionOrca = genConnectionSolana();
-  const result = await new Promise((resolve, reject) => {
-    (async () => {
-      setTimeout(() => {
-        if (done) {
-          return;
-        }
-        done = true;
-        console.log('Timed out for txid', txid);
-        const timeout = { timeout: true };
-        reject(timeout);
-      }, timeout);
-      try {
-        connectionOrca.onSignature(
-          txid,
-          (result) => {
-            done = true;
+  
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      if (done) return;
+      done = true;
+      console.log('Timed out for txid', txid);
+      reject({ timeout: true });
+    }, timeout);
 
-            if (result.err) {
-              const isExceedsLimit =
-                get(result.err, 'InstructionError[1].Custom', 0) === 30 ||
-                get(result.err, 'InstructionError[1].Custom', 0) === 16;
-              const isNotEnoughSol =
-                get(result.err, 'InstructionError[1].Custom', 0) === 1;
-              done = true;
-              if (isNotEnoughSol) {
-                reject({
-                  isError: true,
-                  mess: isNotEnoughSol ? 'Error gasSolNotEnough' : txsFail,
-                });
-              }
-              reject({
-                isError: true,
-                mess: isExceedsLimit ? 'Error exceedsLimit' : txsFail,
-              });
-            } else {
-              resolve(result);
-            }
-          },
-          'recent'
-        );
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeoutId);
+      clearInterval(pollInterval);
+      
+      // Remove WebSocket subscription if it exists
+      if (subscriptionId && typeof connectionOrca.removeSignatureListener === 'function') {
+        try {
+          connectionOrca.removeSignatureListener(subscriptionId);
+        } catch (e) {
+          console.log('Error removing signature listener:', e);
+        }
+      }
+    };
+
+    const handleResult = (result) => {
+      if (done) return;
+      cleanup();
+      
+      if (result.err) {
+        const isExceedsLimit =
+          get(result.err, 'InstructionError[1].Custom', 0) === 30 ||
+          get(result.err, 'InstructionError[1].Custom', 0) === 16;
+        const isNotEnoughSol =
+          get(result.err, 'InstructionError[1].Custom', 0) === 1;
+        
+        if (isNotEnoughSol) {
+          reject({
+            isError: true,
+            mess: 'Error gasSolNotEnough',
+          });
+        } else if (isExceedsLimit) {
+          reject({
+            isError: true,
+            mess: 'Error exceedsLimit',
+          });
+        } else {
+          reject({
+            isError: true,
+            mess: txsFail,
+          });
+        }
+      } else {
+        resolve(result);
+      }
+    };
+
+    // WebSocket subscription
+    let subscriptionId;
+    try {
+      subscriptionId = connectionOrca.onSignature(txid, handleResult, 'recent');
+    } catch (e) {
+      console.log('WS error in setup', txid, e);
+      // Fall back to polling only
+    }
+
+    // Polling fallback
+    const pollInterval = setInterval(async () => {
+      if (done) {
+        clearInterval(pollInterval);
+        return;
+      }
+      
+      try {
+        const signatureStatuses = await connectionOrca.getSignatureStatuses([txid]);
+        const result = signatureStatuses && signatureStatuses.value[0];
+        
+        if (result) {
+          handleResult(result);
+        }
       } catch (e) {
-        done = true;
-        console.log('WS error in setup', txid, e);
+        console.log('Polling error for', txid, e);
       }
-      while (!done) {
-        (async () => {
-          try {
-            const signatureStatuses = await connectionOrca.getSignatureStatuses(
-              [txid]
-            );
-            const result = signatureStatuses && signatureStatuses.value[0];
-            if (!done) {
-              if (!result) {
-                console.log('REST null result for', txid, result);
-              } else if (result.err) {
-                const isExceedsLimit =
-                  get(result.err, 'InstructionError[1].Custom', 0) === 30 ||
-                  get(result.err, 'InstructionError[1].Custom', 0) === 16;
-                const isNotEnoughSol =
-                  get(result.err, 'InstructionError[1].Custom', 0) === 1;
-                done = true;
-                if (isNotEnoughSol) {
-                  reject({
-                    isError: true,
-                    mess: isNotEnoughSol ? 'Error gasSolNotEnough' : txsFail,
-                  });
-                }
-                reject({
-                  isError: true,
-                  mess: isExceedsLimit ? 'Error exceedsLimit' : txsFail,
-                });
-              } else if (!result.confirmations) {
-                done = true;
-                resolve(result);
-              } else {
-                done = true;
-                resolve(result);
-              }
-            }
-          } catch (e) {
-            if (!done) {
-              console.log('REST connection error: txid', txid, e);
-            }
-          }
-        })();
-        await sleep(300);
-      }
-    })();
+    }, 1000);
   });
-  done = true;
-  return result;
 }
 
 export function encodeMessErr(mess) {
@@ -216,6 +210,7 @@ export async function signTransaction(transaction) {
     })
     .catch((err) => {
       console.log({ err });
+      throw err; // Re-throw the error to maintain proper error handling
     });
 }
 

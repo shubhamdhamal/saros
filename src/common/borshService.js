@@ -19,7 +19,13 @@ export class BorshService {
   }
 
   static serialize (layout, data, maxSpan) {
-    const buffer = Buffer.alloc(maxSpan)
+    // Validate maxSpan to prevent excessive memory allocation
+    if (maxSpan <= 0 || maxSpan > 1024 * 1024) { // 1MB limit
+      throw new Error('Invalid maxSpan: must be between 1 and 1MB');
+    }
+    
+    // Use dynamic allocation for better memory efficiency
+    const buffer = Buffer.allocUnsafe(maxSpan)
     const span = layout.encode(data, buffer)
     return buffer.slice(0, span)
   }
