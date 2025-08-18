@@ -95,7 +95,7 @@ export class SarosStakeServices {
 
       return tx;
     } catch (err) {
-      return `Transaction error ${JSON.stringify(err)}`;
+      return { isError: true, mess: `Transaction error ${JSON.stringify(err)}` };
     }
   }
 
@@ -221,9 +221,9 @@ export class SarosStakeServices {
 
       const tx = await connection.sendTransaction(transaction, [payerAccount]);
 
-      return `Your transaction hash: ${tx}`;
+      return { isError: false, hash: tx };
     } catch (err) {
-      return `Transaction error ${JSON.stringify(err)}`;
+      return { isError: true, mess: `Transaction error ${JSON.stringify(err)}` };
     }
   }
 
@@ -325,9 +325,9 @@ export class SarosStakeServices {
 
       const tx = await connection.sendTransaction(transaction, [payerAccount]);
       console.log(`Your transaction hash: ${tx}`);
-      return tx;
+      return { isError: false, hash: tx };
     } catch (err) {
-      return `Transaction error ${JSON.stringify(err)}`;
+      return { isError: true, mess: `Transaction error ${JSON.stringify(err)}` };
     }
   }
 
