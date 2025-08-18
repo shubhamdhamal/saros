@@ -293,7 +293,8 @@ export const withdrawAllTokenTypes = async (
   const lpTokenSupply = poolLpMintInfo.supply.toNumber();
 
   let feeAmount = 0;
-  if (OWNER_WITHDRAW_FEE_NUMERATOR.toNumber() !== 0) {
+  if (OWNER_WITHDRAW_FEE_NUMERATOR.toNumber() !== 0 &&
+      OWNER_WITHDRAW_FEE_DENOMINATOR.toNumber() !== 0) { // Fixed: Added safety check for denominator
     feeAmount = Math.floor(
       (lpTokenAmount * OWNER_WITHDRAW_FEE_NUMERATOR.toNumber()) /
         OWNER_WITHDRAW_FEE_DENOMINATOR.toNumber()
@@ -423,7 +424,7 @@ export const depositAllTokenTypes = async (
     (poolToken1AccountInfo.amount.toNumber() * lpTokenAmount) / lpTokenSupply
   );
   const token1Amount = Math.floor(
-    newAmount1 + renderAmountSlippage(newAmount0, slippage)
+    newAmount1 + renderAmountSlippage(newAmount1, slippage) // Fixed: Use newAmount1 instead of newAmount0
   );
 
   const [poolAuthorityAddress] = await findPoolAuthorityAddress(
@@ -847,9 +848,9 @@ export const getSwapAmountSaros = async (
   let fromAmountWithFee =
     (newAmount *
       (tradeFeeDenominator.toNumber() - tradeFeeNumerator.toNumber())) /
-    tradeFeeDenominator;
+    tradeFeeDenominator.toNumber(); // Fixed: Added .toNumber() for consistency
 
-  if (tradeFeeDenominator.toNumber() === 0 || tradeFeeNumerator.toNumber()) {
+  if (tradeFeeDenominator.toNumber() === 0 || tradeFeeNumerator.toNumber() === 0) { // Fixed: Added === 0 to check if numerator is zero
     fromAmountWithFee = newAmount;
   }
   const rateEst = convertAmountOutputToken / convertAmountInputToken;
