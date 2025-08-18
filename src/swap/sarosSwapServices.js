@@ -844,13 +844,13 @@ export const getSwapAmountSaros = async (
       outputTokenInfo.decimals
     )
   );
-  let fromAmountWithFee =
-    (newAmount *
+  let fromAmountWithFee = newAmount;
+  
+  // Only apply fees if denominator is non-zero and numerator is non-zero
+  if (tradeFeeDenominator.toNumber() !== 0 && tradeFeeNumerator.toNumber() !== 0) {
+    fromAmountWithFee = (newAmount *
       (tradeFeeDenominator.toNumber() - tradeFeeNumerator.toNumber())) /
-    tradeFeeDenominator;
-
-  if (tradeFeeDenominator.toNumber() === 0 || tradeFeeNumerator.toNumber()) {
-    fromAmountWithFee = newAmount;
+      tradeFeeDenominator.toNumber();
   }
   const rateEst = convertAmountOutputToken / convertAmountInputToken;
 
