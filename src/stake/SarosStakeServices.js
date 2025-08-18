@@ -95,7 +95,9 @@ export class SarosStakeServices {
 
       return tx;
     } catch (err) {
-      return `Transaction error ${JSON.stringify(err)}`;
+      // Fixed: Proper error handling without sensitive information disclosure
+      console.error('Stake operation failed:', err);
+      throw new Error('Failed to stake in pool. Please verify your parameters and account balance.');
     }
   }
 
@@ -223,7 +225,9 @@ export class SarosStakeServices {
 
       return `Your transaction hash: ${tx}`;
     } catch (err) {
-      return `Transaction error ${JSON.stringify(err)}`;
+      // Fixed: Proper error handling without sensitive information disclosure
+      console.error('Unstake operation failed:', err);
+      throw new Error('Failed to unstake from pool. Please verify your parameters and account balance.');
     }
   }
 
@@ -327,7 +331,9 @@ export class SarosStakeServices {
       console.log(`Your transaction hash: ${tx}`);
       return tx;
     } catch (err) {
-      return `Transaction error ${JSON.stringify(err)}`;
+      // Fixed: Proper error handling without sensitive information disclosure
+      console.error('Claim reward operation failed:', err);
+      throw new Error('Failed to claim rewards. Please verify your parameters and account balance.');
     }
   }
 
@@ -443,7 +449,9 @@ export class SarosStakeServices {
       );
       return newListFarm;
     } catch (err) {
-      return `Get list stake error ${JSON.stringify(err)}`;
+      // Fixed: Proper error handling without sensitive information disclosure
+      console.error('Failed to get stake list:', err);
+      throw new Error('Failed to retrieve stake pool list. Please check your connection and try again.');
     }
   }
 

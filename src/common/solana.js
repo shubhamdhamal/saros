@@ -204,19 +204,43 @@ export async function genOwnerSolana(wallet) {
   return { publicKey };
 }
 
-export async function signTransaction(transaction) {
-  return window.coin98.sol
-    .request({ method: 'sol_sign', params: [transaction] })
-    .then((res) => {
-      console.log({ res });
-      const sig = bs58.decode(res.signature);
-      const publicKey = new PublicKey(res.publicKey);
-      transaction.addSignature(publicKey, sig);
-      return transaction;
-    })
-    .catch((err) => {
-      console.log({ err });
-    });
+export async function signTransaction(transaction, walletAdapter = null) {
+  // Fixed: Added wallet abstraction to support multiple wallets
+
+  // Use provided wallet adapter first
+  if (walletAdapter && typeof walletAdapter.signTransaction === 'function') {
+    return await walletAdapter.signTransaction(transaction);
+  }
+
+  // Support multiple wallets
+  if (window.solana && window.solana.signTransaction) {
+    // Phantom and other standard wallets
+    return await window.solana.signTransaction(transaction);
+  }
+
+  if (window.solflare && window.solflare.signTransaction) {
+    // Solflare wallet
+    return await window.solflare.signTransaction(transaction);
+  }
+
+  if (window.coin98 && window.coin98.sol) {
+    // Coin98 wallet (maintain backward compatibility)
+    return window.coin98.sol
+      .request({ method: 'sol_sign', params: [transaction] })
+      .then((res) => {
+        console.log({ res });
+        const sig = bs58.decode(res.signature);
+        const publicKey = new PublicKey(res.publicKey);
+        transaction.addSignature(publicKey, sig);
+        return transaction;
+      })
+      .catch((err) => {
+        console.log({ err });
+        throw err;
+      });
+  }
+
+  throw new Error('No compatible wallet found. Please connect a supported Solana wallet (Phantom, Solflare, Coin98, etc.).');
 }
 
 export async function sendTransaction(
