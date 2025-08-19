@@ -335,7 +335,7 @@ const onUnStakePool = async () => {
     connection,
     payerAccount,
     new PublicKey(farmList.poolAddress),
-    new PublicKey(farmList.lpAddress)
+    new PublicKey(farmList.lpAddress),
     new BN(100),
     SAROS_FARM_ADDRESS,
     farmList.rewards,
@@ -358,5 +358,3 @@ const onClaimReward = async () => {
   return `Your transaction hash: ${hash}`;
 
 }
-
-```

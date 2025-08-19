@@ -423,7 +423,7 @@ export const depositAllTokenTypes = async (
     (poolToken1AccountInfo.amount.toNumber() * lpTokenAmount) / lpTokenSupply
   );
   const token1Amount = Math.floor(
-    newAmount1 + renderAmountSlippage(newAmount0, slippage)
+    newAmount1 + renderAmountSlippage(newAmount1, slippage)
   );
 
   const [poolAuthorityAddress] = await findPoolAuthorityAddress(
